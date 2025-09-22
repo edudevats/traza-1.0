@@ -11,7 +11,7 @@ def create_app(config_name='default'):
         config_name = os.getenv('FLASK_ENV', 'development')
 
     from config import config
-    app.config.from_object(config[config_name])
+    app.config.from_object(config[config_name]())
 
     # Load environment variables
     from dotenv import load_dotenv

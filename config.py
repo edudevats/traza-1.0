@@ -29,21 +29,20 @@ class ProductionConfig(Config):
     # Override for production paths
     UPLOAD_FOLDER = '/home/edudracos/traza-1.0/app/static/facturas'
 
-    @property
-    def SECRET_KEY(self):
+    def __init__(self):
+        super().__init__()
+        # Set SECRET_KEY
         secret = os.getenv("SECRET_KEY")
         if not secret:
             raise ValueError("No SECRET_KEY set for production!")
-        return secret
+        self.SECRET_KEY = secret
 
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        # Use MySQL for production if available, fallback to SQLite
+        # Set database URI
         db_url = os.getenv("DATABASE_URL")
         if not db_url:
             # Default SQLite path for PythonAnywhere
             db_url = "sqlite:////home/edudracos/traza-1.0/instance/facturas.db"
-        return db_url
+        self.SQLALCHEMY_DATABASE_URI = db_url
 
 config = {
     'development': DevelopmentConfig,
