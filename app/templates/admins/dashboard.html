@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Administrador{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Panel de Administración</h1>
+        <p class="text-muted mb-0">Gestiona todo el sistema desde aquí</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admins.gestionar_usuarios') }}" class="btn btn-primary btn-custom me-2">
+            <i class="bi bi-people me-2"></i>Gestionar Usuarios
+        </a>
+        <a href="{{ url_for('admins.configurar_tasas') }}" class="btn btn-outline-primary btn-custom">
+            <i class="bi bi-gear me-2"></i>Configurar Tasas
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 mb-2"></i>
+                <h3 class="mb-1">{{ total_usuarios }}</h3>
+                <p class="mb-0">Usuarios Totales</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text display-4 mb-2"></i>
+                <h3 class="mb-1">{{ total_facturas }}</h3>
+                <p class="mb-0">Facturas Totales</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-hourglass-split display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_pendientes }}</h3>
+                <p class="mb-0">Pendientes Aprobación</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_aprobadas_hoy }}</h3>
+                <p class="mb-0">Aprobadas Hoy</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pending Invoices -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-hourglass-split me-2"></i>Facturas Pendientes de Aprobación
+                </h5>
+                <a href="{{ url_for('admins.facturas_pendientes') }}" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+            </div>
+            <div class="card-body">
+                {% if facturas_pendientes_lista %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Usuario</th>
+                                    <th>Importador</th>
+                                    <th>Estado</th>
+                                    <th>Total</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for factura in facturas_pendientes_lista %}
+                                <tr>
+                                    <td><strong>{{ factura.id }}</strong></td>
+                                    <td>{{ factura.usuario.nombre }}</td>
+                                    <td>{{ factura.importador }}</td>
+                                    <td>
+                                        {% set estado_class = {
+                                            'pendiente_supervisor': 'warning',
+                                            'pendiente_admin': 'info'
+                                        } %}
+                                        <span class="badge bg-{{ estado_class.get(factura.estado, 'secondary') }}">
+                                            {{ factura.get_estado_display() }}
+                                        </span>
+                                    </td>
+                                    <td>${{ "%.2f"|format(factura.total_pagar) }}</td>
+                                    <td>{{ factura.creado_en.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admins.revisar_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye-fill"></i> Revisar
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-all display-4 text-success mb-3"></i>
+                        <h5 class="text-muted">No hay facturas pendientes</h5>
+                        <p class="text-muted mb-0">Todas las facturas están procesadas</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- System Stats -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Estadísticas del Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Usuarios Activos</span>
+                    <span class="badge bg-success">{{ usuarios_activos }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Usuarios Inactivos</span>
+                    <span class="badge bg-danger">{{ usuarios_inactivos }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Supervisores</span>
+                    <span class="badge bg-info">{{ total_supervisores }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Facturas Este Mes</span>
+                    <span class="badge bg-primary">{{ facturas_mes }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Acciones Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admins.crear_factura') }}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle me-2"></i>Crear Factura
+                    </a>
+                    <a href="{{ url_for('admins.gestionar_usuarios') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-plus me-2"></i>Crear Usuario
+                    </a>
+                    <a href="{{ url_for('admins.configurar_tasas') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-percent me-2"></i>Actualizar Tasas
+                    </a>
+                    <a href="{{ url_for('admins.estadisticas') }}" class="btn btn-outline-info">
+                        <i class="bi bi-bar-chart me-2"></i>Ver Reportes
+                    </a>
+                    <a href="{{ url_for('admins.gestionar_facturas') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-file-earmark-text me-2"></i>Gestionar Facturas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-check me-2"></i>Estado del Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span>Base de Datos</span>
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle"></i> Activa
+                    </span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span>Servidor</span>
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle"></i> En Línea
+                    </span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span>Última Actualización</span>
+                    <small class="text-muted">Hoy</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

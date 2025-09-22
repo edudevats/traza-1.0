@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Supervisor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Panel de Supervisión</h1>
+        <p class="text-muted mb-0">Supervisa y revisa las facturas del sistema</p>
+    </div>
+    <div>
+        <a href="{{ url_for('supervisores.facturas_por_revisar') }}" class="btn btn-warning btn-custom me-2">
+            <i class="bi bi-clipboard-check me-2"></i>Revisar Facturas
+        </a>
+        <a href="{{ url_for('supervisores.estadisticas') }}" class="btn btn-outline-primary btn-custom">
+            <i class="bi bi-bar-chart me-2"></i>Estadísticas
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-clipboard-check display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_pendientes }}</h3>
+                <p class="mb-0">Por Revisar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-2"></i>
+                <h3 class="mb-1">{{ revisiones_hoy }}</h3>
+                <p class="mb-0">Revisadas Hoy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-4 mb-2"></i>
+                <h3 class="mb-1">{{ tiempo_promedio }}</h3>
+                <p class="mb-0">Tiempo Promedio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-4 mb-2"></i>
+                <h3 class="mb-1">{{ total_revisiones }}</h3>
+                <p class="mb-0">Total Revisiones</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Facturas Pendientes -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-hourglass-split me-2"></i>Facturas Pendientes de Revisión
+                </h5>
+                <a href="{{ url_for('supervisores.facturas_por_revisar') }}" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+            </div>
+            <div class="card-body">
+                {% if facturas_pendientes_lista %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Usuario</th>
+                                    <th>Importador</th>
+                                    <th>Total</th>
+                                    <th>Fecha</th>
+                                    <th>Prioridad</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for factura in facturas_pendientes_lista %}
+                                <tr>
+                                    <td><strong>{{ factura.id }}</strong></td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ factura.usuario.nombre }}</strong>
+                                            <br><small class="text-muted">{{ factura.usuario.email }}</small>
+                                        </div>
+                                    </td>
+                                    <td>{{ factura.importador }}</td>
+                                    <td>${{ "%.2f"|format(factura.total_pagar) }}</td>
+                                    <td>{{ factura.creado_en.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        {% set dias = 1 %}
+                                        {% if dias > 3 %}
+                                            <span class="badge bg-danger">Alta</span>
+                                        {% elif dias > 1 %}
+                                            <span class="badge bg-warning">Media</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Normal</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('supervisores.revisar_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-eye-fill"></i> Revisar
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-all display-4 text-success mb-3"></i>
+                        <h5 class="text-muted">¡Excelente trabajo!</h5>
+                        <p class="text-muted mb-0">No hay facturas pendientes de revisión</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="col-lg-4">
+        <!-- Performance Today -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-trophy me-2"></i>Rendimiento de Hoy
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Facturas Revisadas</span>
+                    <span class="badge bg-success fs-6">{{ revisiones_hoy }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Aprobadas</span>
+                    <span class="badge bg-primary">{{ aprobadas_hoy }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Rechazadas</span>
+                    <span class="badge bg-danger">{{ rechazadas_hoy }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Tasa de Aprobación</span>
+                    <span class="badge bg-info">{{ "%.1f"|format(tasa_aprobacion_hoy) }}%</span>
+                </div>
+
+                <hr>
+
+                <div class="progress mb-2">
+                    <div class="progress-bar bg-success" style="width: {{ "%.1f"|format(tasa_aprobacion_hoy) }}%"></div>
+                </div>
+                <small class="text-muted">Meta diaria: 85% de aprobación</small>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity me-2"></i>Actividad Reciente
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if actividad_reciente %}
+                    {% for actividad in actividad_reciente %}
+                    <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            {% if actividad.accion == 'aprobada_supervisor' %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                            {% elif actividad.accion == 'rechazada' %}
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill text-info"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ actividad.get_accion_display() }}</h6>
+                            <p class="mb-1 small">Factura #{{ actividad.factura.id }} - {{ actividad.factura.importador }}</p>
+                            <small class="text-muted">{{ actividad.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-activity display-6 text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Sin actividad reciente</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Acciones Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('supervisores.facturas_por_revisar') }}" class="btn btn-warning">
+                        <i class="bi bi-clipboard-check me-2"></i>Revisar Facturas
+                    </a>
+                    <a href="{{ url_for('supervisores.mis_revisiones') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-check2-all me-2"></i>Mis Revisiones
+                    </a>
+                    <a href="{{ url_for('supervisores.estadisticas') }}" class="btn btn-outline-info">
+                        <i class="bi bi-bar-chart me-2"></i>Ver Estadísticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Summary -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-week me-2"></i>Resumen Semanal
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ stats_semana.lunes }}</h4>
+                        <small class="text-muted">Lunes</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ stats_semana.martes }}</h4>
+                        <small class="text-muted">Martes</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ stats_semana.miercoles }}</h4>
+                        <small class="text-muted">Miércoles</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ stats_semana.jueves }}</h4>
+                        <small class="text-muted">Jueves</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ stats_semana.viernes }}</h4>
+                        <small class="text-muted">Viernes</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-success">{{ stats_semana.total }}</h4>
+                        <small class="text-muted">Total</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

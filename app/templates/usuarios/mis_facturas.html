@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Facturas - Usuario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Mis Facturas</h1>
+        <p class="text-muted mb-0">Gestiona todas tus facturas creadas</p>
+    </div>
+    <a href="{{ url_for('usuarios.crear_factura') }}" class="btn btn-primary btn-custom">
+        <i class="bi bi-plus-circle me-2"></i>Nueva Factura
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text display-5 mb-2"></i>
+                <h4 class="mb-1">{{ facturas.items|length if facturas.items else 0 }}</h4>
+                <p class="mb-0">Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-5 mb-2"></i>
+                <h4 class="mb-1">{{ facturas.items|selectattr('estado', 'equalto', 'aprobada')|list|length if facturas.items else 0 }}</h4>
+                <p class="mb-0">Aprobadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-hourglass-split display-5 mb-2"></i>
+                <h4 class="mb-1">{{ facturas.items|selectattr('estado', 'in', ['pendiente_supervisor', 'pendiente_admin'])|list|length if facturas.items else 0 }}</h4>
+                <p class="mb-0">En Proceso</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-pencil display-5 mb-2"></i>
+                <h4 class="mb-1">{{ facturas.items|selectattr('estado', 'equalto', 'borrador')|list|length if facturas.items else 0 }}</h4>
+                <p class="mb-0">Borradores</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            {{ form.hidden_tag() }}
+
+            <div class="col-md-3">
+                {{ form.estado.label(class="form-label") }}
+                {{ form.estado(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_desde.label(class="form-label") }}
+                {{ form.fecha_desde(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_hasta.label(class="form-label") }}
+                {{ form.fecha_hasta(class="form-control") }}
+            </div>
+            <div class="col-md-3">
+                {{ form.buscar.label(class="form-label") }}
+                {{ form.buscar(class="form-control", placeholder="Buscar importador...") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Facturas Table -->
+<div class="card">
+    <div class="card-body">
+        {% if facturas.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Importador</th>
+                            <th>Producto</th>
+                            <th>Estado</th>
+                            <th>Total</th>
+                            <th>Creada</th>
+                            <th>Actualizada</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for factura in facturas.items %}
+                        <tr>
+                            <td><strong>#{{ factura.id }}</strong></td>
+                            <td>
+                                <div>
+                                    <strong>{{ factura.importador }}</strong>
+                                    {% if factura.descripcion_producto %}
+                                        <br><small class="text-muted">{{ factura.descripcion_producto[:40] }}...</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {{ factura.cantidad }} {{ factura.unidad_medida }}
+                                <br><small class="text-muted">CIF: ${{ "%.2f"|format(factura.valor_cif) }}</small>
+                            </td>
+                            <td>
+                                {% set estado_class = {
+                                    'borrador': 'secondary',
+                                    'pendiente_supervisor': 'warning',
+                                    'pendiente_admin': 'info',
+                                    'aprobada': 'success',
+                                    'suspendida': 'danger',
+                                    'cancelada': 'dark'
+                                } %}
+                                <span class="badge bg-{{ estado_class.get(factura.estado, 'secondary') }}">
+                                    {{ factura.get_estado_display() }}
+                                </span>
+                                {% if factura.estado == 'pendiente_supervisor' %}
+                                    <br><small class="text-muted">En revisión</small>
+                                {% elif factura.estado == 'pendiente_admin' %}
+                                    <br><small class="text-muted">Esperando aprobación</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-{{ 'success' if factura.estado == 'aprobada' else 'primary' }}">${{ "%.2f"|format(factura.total_pagar) }}</strong>
+                            </td>
+                            <td>{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ factura.actualizado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('usuarios.ver_factura', id=factura.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if factura.can_edit(current_user) %}
+                                        <a href="{{ url_for('usuarios.editar_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-outline-warning" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if factura.estado == 'borrador' %}
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="eliminarFactura({{ factura.id }})" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-file-earmark-plus display-4 text-muted mb-3"></i>
+                <h4 class="text-muted">No tienes facturas aún</h4>
+                <p class="text-muted mb-4">¡Crea tu primera factura para comenzar!</p>
+                <a href="{{ url_for('usuarios.crear_factura') }}" class="btn btn-primary btn-custom">
+                    <i class="bi bi-plus-circle me-2"></i>Crear Primera Factura
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary -->
+{% if facturas.items %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format(facturas.items|map(attribute='total_pagar')|sum if facturas.items else 0) }}</h4>
+                <small>Valor Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format(facturas.items|selectattr('estado', 'equalto', 'aprobada')|map(attribute='total_pagar')|sum if facturas.items else 0) }}</h4>
+                <small>Valor Aprobado</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format(facturas.items|selectattr('estado', 'in', ['pendiente_supervisor', 'pendiente_admin'])|map(attribute='total_pagar')|sum if facturas.items else 0) }}</h4>
+                <small>Valor Pendiente</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                {% set promedio = (facturas.items|map(attribute='total_pagar')|sum / facturas.items|length) if facturas.items and facturas.items|length > 0 else 0 %}
+                <h4>${{ "%.0f"|format(promedio) }}</h4>
+                <small>Promedio</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function eliminarFactura(facturaId) {
+    if (confirm('¿Estás seguro de eliminar esta factura? Esta acción no se puede deshacer.')) {
+        fetch(`/usuario/eliminar_factura/${facturaId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al eliminar la factura: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+</script>
+{% endblock %}

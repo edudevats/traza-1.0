@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Revisiones - Supervisor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Mis Revisiones</h1>
+        <p class="text-muted mb-0">Historial de facturas que has revisado</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary me-2" onclick="exportarRevisiones()">
+            <i class="bi bi-download me-2"></i>Exportar
+        </button>
+        <a href="{{ url_for('supervisores.dashboard') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-5 mb-2"></i>
+                <h4 class="mb-1">{{ stats.total_aprobadas }}</h4>
+                <p class="mb-0">Aprobadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card danger">
+            <div class="card-body text-center">
+                <i class="bi bi-x-circle display-5 mb-2"></i>
+                <h4 class="mb-1">{{ stats.total_rechazadas }}</h4>
+                <p class="mb-0">Rechazadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-5 mb-2"></i>
+                <h4 class="mb-1">{{ stats.tiempo_promedio }}</h4>
+                <p class="mb-0">Tiempo Promedio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-percent display-5 mb-2"></i>
+                <h4 class="mb-1">{{ "%.1f"|format(stats.tasa_aprobacion) }}%</h4>
+                <p class="mb-0">Tasa Aprobación</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            {{ form.hidden_tag() }}
+
+            <div class="col-md-2">
+                {{ form.estado.label(class="form-label") }}
+                {{ form.estado(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_desde.label(class="form-label") }}
+                {{ form.fecha_desde(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_hasta.label(class="form-label") }}
+                {{ form.fecha_hasta(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.usuario.label(class="form-label") }}
+                {{ form.usuario(class="form-select") }}
+            </div>
+            <div class="col-md-3">
+                {{ form.buscar.label(class="form-label") }}
+                {{ form.buscar(class="form-control", placeholder="Importador o comentarios...") }}
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Revisiones Table -->
+<div class="card">
+    <div class="card-body">
+        {% if facturas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Usuario</th>
+                            <th>Importador</th>
+                            <th>Total</th>
+                            <th>Mi Decisión</th>
+                            <th>Estado Actual</th>
+                            <th>Fecha Revisión</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for factura in facturas %}
+                        {% set mi_revision = factura.historial|selectattr('usuario_id', 'equalto', current_user.id)|first %}
+                        <tr>
+                            <td>
+                                <strong>#{{ factura.id }}</strong>
+                                <br><small class="text-muted">{{ factura.creado_en.strftime('%d/%m/%Y') }}</small>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ factura.usuario.nombre }}</strong>
+                                    <br><small class="text-muted">{{ factura.usuario.email }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {{ factura.importador[:30] }}
+                                {% if factura.importador|length > 30 %}...{% endif %}
+                            </td>
+                            <td>${{ "%.2f"|format(factura.total_pagar) }}</td>
+                            <td>
+                                {% if mi_revision %}
+                                    {% if mi_revision.accion == 'aprobada_supervisor' %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle me-1"></i>Aprobé
+                                        </span>
+                                    {% elif mi_revision.accion == 'rechazada' %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-x-circle me-1"></i>Rechacé
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">Sin revisión</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set estado_class = {
+                                    'aprobada': 'success',
+                                    'pendiente_admin': 'info',
+                                    'suspendida': 'danger',
+                                    'cancelada': 'dark'
+                                } %}
+                                <span class="badge bg-{{ estado_class.get(factura.estado, 'secondary') }}">
+                                    {{ factura.get_estado_display() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if mi_revision %}
+                                    {{ mi_revision.fecha.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('supervisores.ver_factura', id=factura.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if mi_revision and mi_revision.comentarios %}
+                                        <button class="btn btn-sm btn-outline-info"
+                                                title="Ver comentarios"
+                                                onclick="mostrarComentarios('{{ mi_revision.comentarios|replace("'", "\\'") }}')">
+                                            <i class="bi bi-chat-text"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination would go here -->
+            {% if facturas|length == 0 %}
+                <div class="text-center py-4">
+                    <i class="bi bi-search display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">No se encontraron revisiones</h5>
+                    <p class="text-muted">Prueba ajustando los filtros de búsqueda</p>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-clipboard-x display-4 text-muted mb-3"></i>
+                <h4 class="text-muted">Sin revisiones aún</h4>
+                <p class="text-muted mb-4">No has revisado ninguna factura todavía</p>
+                <a href="{{ url_for('supervisores.facturas_por_revisar') }}" class="btn btn-warning">
+                    <i class="bi bi-clipboard-check me-2"></i>Comenzar a Revisar
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Performance Analysis -->
+{% if facturas %}
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Análisis de Rendimiento
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="rendimientoChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Métricas Destacadas</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Eficiencia</span>
+                        <span>{{ "%.1f"|format(stats.eficiencia) }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" style="width: {{ stats.eficiencia }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Consistencia</span>
+                        <span>{{ "%.1f"|format(stats.consistencia) }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-info" style="width: {{ stats.consistencia }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Velocidad</span>
+                        <span>{{ "%.1f"|format(stats.velocidad) }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" style="width: {{ stats.velocidad }}%"></div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="text-center">
+                    <h4 class="text-primary">{{ "%.1f"|format((stats.eficiencia + stats.consistencia + stats.velocidad) / 3) }}</h4>
+                    <small class="text-muted">Puntuación General</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Comments Modal -->
+<div class="modal fade" id="comentariosModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mis Comentarios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" id="comentarioTexto"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function mostrarComentarios(comentarios) {
+    document.getElementById('comentarioTexto').textContent = comentarios;
+    new bootstrap.Modal(document.getElementById('comentariosModal')).show();
+}
+
+function exportarRevisiones() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = '/supervisor/exportar_revisiones?' + params.toString();
+}
+
+// Rendimiento chart
+{% if facturas %}
+const ctx = document.getElementById('rendimientoChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ stats.fechas_labels|tojson }},
+        datasets: [{
+            label: 'Facturas Revisadas',
+            data: {{ stats.revisiones_por_dia|tojson }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Facturas Aprobadas',
+            data: {{ stats.aprobadas_por_dia|tojson }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

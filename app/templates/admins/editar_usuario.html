@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Usuario - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Editar Usuario</h1>
+        <p class="text-muted mb-0">Modifica la información del usuario</p>
+    </div>
+    <a href="{{ url_for('admins.gestionar_usuarios') }}" class="btn btn-secondary btn-custom">
+        <i class="bi bi-arrow-left me-2"></i>Volver a Usuarios
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-gear me-2"></i>Información del Usuario
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.nombre.label(class="form-label") }}
+                            {{ form.nombre(class="form-control") }}
+                            {% if form.nombre.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.nombre.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.email.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.rol.label(class="form-label") }}
+                            {{ form.rol(class="form-select") }}
+                            {% if form.rol.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.rol.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if usuario.rol == 'usuario' %}
+                        <div class="col-md-6 mb-3">
+                            {{ form.creditos.label(class="form-label") }}
+                            {{ form.creditos(class="form-control") }}
+                            {% if form.creditos.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.creditos.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12 mb-3">
+                            <div class="form-check">
+                                {{ form.activo(class="form-check-input") }}
+                                {{ form.activo.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6 class="mb-3">Cambiar Contraseña (opcional)</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control") }}
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.password.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Deja en blanco para mantener la contraseña actual</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.confirm_password.label(class="form-label") }}
+                            {{ form.confirm_password(class="form-control") }}
+                            {% if form.confirm_password.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.confirm_password.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Stats -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Estadísticas del Usuario
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h4 class="text-primary">{{ usuario.facturas|length }}</h4>
+                        <small class="text-muted">Facturas Creadas</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-success">
+                            {{ usuario.facturas|selectattr('estado', 'equalto', 'aprobada')|list|length }}
+                        </h4>
+                        <small class="text-muted">Aprobadas</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-warning">
+                            {{ usuario.facturas|selectattr('estado', 'in', ['pendiente_supervisor', 'pendiente_admin'])|list|length }}
+                        </h4>
+                        <small class="text-muted">Pendientes</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-info">
+                            {% if usuario.ultimo_acceso %}
+                                {{ usuario.ultimo_acceso.strftime('%d/%m') }}
+                            {% else %}
+                                Nunca
+                            {% endif %}
+                        </h4>
+                        <small class="text-muted">Último Acceso</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

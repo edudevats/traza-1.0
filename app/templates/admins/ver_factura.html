@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Ver Factura #{{ factura.id }} - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Factura #{{ factura.id }}</h1>
+        <p class="text-muted mb-0">Vista detallada de la factura</p>
+    </div>
+    <div>
+        {% if factura.estado == 'pendiente_admin' %}
+            <a href="{{ url_for('admins.aprobar_factura', id=factura.id) }}" class="btn btn-success btn-custom me-2">
+                <i class="bi bi-check-circle me-2"></i>Revisar y Aprobar
+            </a>
+        {% endif %}
+        <a href="{{ url_for('admins.gestionar_facturas') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Facturas
+        </a>
+    </div>
+</div>
+
+<!-- Status Banner -->
+<div class="alert alert-{{ 'success' if factura.estado == 'aprobada' else 'warning' if factura.estado in ['pendiente_supervisor', 'pendiente_admin'] else 'danger' if factura.estado in ['suspendida', 'cancelada'] else 'secondary' }}" role="alert">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-{{ 'check-circle' if factura.estado == 'aprobada' else 'hourglass-split' if factura.estado in ['pendiente_supervisor', 'pendiente_admin'] else 'x-circle' if factura.estado in ['suspendida', 'cancelada'] else 'file-earmark' }} fs-4 me-3"></i>
+        <div>
+            <h5 class="mb-1">Estado: {{ factura.get_estado_display() }}</h5>
+            <p class="mb-0">
+                {% if factura.estado == 'aprobada' %}
+                    Esta factura ha sido aprobada y procesada exitosamente.
+                {% elif factura.estado == 'pendiente_admin' %}
+                    Esta factura requiere tu aprobación como administrador.
+                {% elif factura.estado == 'pendiente_supervisor' %}
+                    Esta factura está esperando revisión del supervisor.
+                {% elif factura.estado == 'suspendida' %}
+                    Esta factura ha sido suspendida y requiere revisión.
+                {% elif factura.estado == 'cancelada' %}
+                    Esta factura ha sido cancelada.
+                {% else %}
+                    Esta factura está en estado de borrador.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Basic Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Información General
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Usuario:</strong></td>
+                                <td>
+                                    {{ factura.usuario.nombre }}
+                                    <br><small class="text-muted">{{ factura.usuario.email }}</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Importador:</strong></td>
+                                <td>{{ factura.importador }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Descripción:</strong></td>
+                                <td>{{ factura.descripcion_producto }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cantidad:</strong></td>
+                                <td>{{ factura.cantidad }} {{ factura.unidad_medida }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Valor FOB:</strong></td>
+                                <td>${{ "%.2f"|format(factura.valor_fob) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Flete:</strong></td>
+                                <td>${{ "%.2f"|format(factura.flete) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor CIF:</strong></td>
+                                <td><strong>${{ "%.2f"|format(factura.valor_cif) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total a Pagar:</strong></td>
+                                <td><span class="text-success fs-5"><strong>${{ "%.2f"|format(factura.total_pagar) }}</strong></span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tax Breakdown -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-percent me-2"></i>Desglose de Impuestos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Tasa</th>
+                                        <th>Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>IEPS</td>
+                                        <td>{{ "%.2f"|format(factura.tasa_ieps) }}%</td>
+                                        <td>${{ "%.2f"|format(factura.ieps) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>IVA</td>
+                                        <td>{{ "%.1f"|format(factura.tasa_iva * 100) }}%</td>
+                                        <td>${{ "%.2f"|format(factura.iva) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>PVR</td>
+                                        <td>{{ "%.1f"|format(factura.tasa_pvr * 100) }}%</td>
+                                        <td>${{ "%.2f"|format(factura.pvr) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>IVA PVR</td>
+                                        <td>{{ "%.1f"|format(factura.tasa_iva_pvr * 100) }}%</td>
+                                        <td>${{ "%.2f"|format(factura.iva_pvr) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-dark">
+                                    <tr>
+                                        <th>Total Impuestos</th>
+                                        <th></th>
+                                        <th>${{ "%.2f"|format(factura.ieps + factura.iva + factura.pvr + factura.iva_pvr) }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <!-- Visual breakdown -->
+                        <canvas id="taxChart" width="300" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        {% if historial %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Historial de Cambios
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for registro in historial %}
+                    <div class="timeline-item d-flex mb-3">
+                        <div class="timeline-marker me-3">
+                            {% if registro.accion == 'creada' %}
+                                <i class="bi bi-plus-circle text-primary"></i>
+                            {% elif registro.accion == 'enviada_supervisor' %}
+                                <i class="bi bi-arrow-right text-warning"></i>
+                            {% elif registro.accion == 'aprobada_supervisor' %}
+                                <i class="bi bi-check text-success"></i>
+                            {% elif registro.accion == 'aprobada' %}
+                                <i class="bi bi-check-circle text-success"></i>
+                            {% elif registro.accion == 'rechazada' %}
+                                <i class="bi bi-x-circle text-danger"></i>
+                            {% endif %}
+                        </div>
+                        <div class="timeline-content flex-grow-1">
+                            <h6 class="mb-1">{{ registro.get_accion_display() }}</h6>
+                            <p class="mb-1 text-muted">
+                                Por: {{ registro.usuario.nombre }} ({{ registro.usuario.rol|title }})
+                            </p>
+                            {% if registro.comentarios %}
+                                <div class="alert alert-light py-2 px-3 small mb-2">
+                                    {{ registro.comentarios }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">{{ registro.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if factura.estado == 'pendiente_admin' %}
+                        <a href="{{ url_for('admins.aprobar_factura', id=factura.id) }}" class="btn btn-success">
+                            <i class="bi bi-check-circle me-2"></i>Aprobar
+                        </a>
+                    {% endif %}
+
+                    {% if factura.archivo_factura %}
+                        <a href="{{ url_for('static', filename='facturas/' + factura.archivo_factura) }}"
+                           class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>Ver Archivo
+                        </a>
+                    {% endif %}
+
+                    <button class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-2"></i>Imprimir
+                    </button>
+
+                    <a href="{{ url_for('admins.exportar_factura', id=factura.id) }}" class="btn btn-outline-info">
+                        <i class="bi bi-download me-2"></i>Exportar PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Información del Usuario</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <i class="bi bi-person-circle display-4 text-muted"></i>
+                    <h6 class="mt-2">{{ factura.usuario.nombre }}</h6>
+                    <small class="text-muted">{{ factura.usuario.email }}</small>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Rol:</span>
+                    <span class="badge bg-{{ 'danger' if factura.usuario.rol == 'admin' else 'warning' if factura.usuario.rol == 'supervisor' else 'primary' }}">
+                        {{ factura.usuario.rol|title }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Estado:</span>
+                    <span class="badge bg-{{ 'success' if factura.usuario.activo else 'danger' }}">
+                        {{ 'Activo' if factura.usuario.activo else 'Inactivo' }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Créditos:</span>
+                    <span class="badge bg-info">{{ factura.usuario.creditos }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Facturas:</span>
+                    <span class="badge bg-secondary">{{ factura.usuario.facturas|length }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Metadatos</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless table-sm">
+                    <tr>
+                        <td>ID:</td>
+                        <td><code>{{ factura.id }}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Creada:</td>
+                        <td>{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Actualizada:</td>
+                        <td>{{ factura.actualizado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    {% if factura.aprobado_en %}
+                    <tr>
+                        <td>Aprobada:</td>
+                        <td>{{ factura.aprobado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Tax breakdown chart
+const ctx = document.getElementById('taxChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['IEPS', 'IVA', 'PVR', 'IVA PVR'],
+        datasets: [{
+            data: [
+                {{ factura.ieps }},
+                {{ factura.iva }},
+                {{ factura.pvr }},
+                {{ factura.iva_pvr }}
+            ],
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

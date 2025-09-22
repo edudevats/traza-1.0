@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Aprobar Factura #{{ factura.id }} - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Revisar Factura #{{ factura.id }}</h1>
+        <p class="text-muted mb-0">Revisa los detalles y decide sobre la aprobación</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admins.facturas_pendientes') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Pendientes
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Factura Details -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>Detalles de la Factura
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Usuario:</strong></td>
+                                <td>{{ factura.usuario.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ factura.usuario.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Importador:</strong></td>
+                                <td>{{ factura.importador }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Estado Actual:</strong></td>
+                                <td>
+                                    <span class="badge bg-info">{{ factura.get_estado_display() }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fecha Creación:</strong></td>
+                                <td>{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Producto:</strong></td>
+                                <td>{{ factura.descripcion_producto }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cantidad:</strong></td>
+                                <td>{{ factura.cantidad }} {{ factura.unidad_medida }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor CIF:</strong></td>
+                                <td>${{ "%.2f"|format(factura.valor_cif) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor FOB:</strong></td>
+                                <td>${{ "%.2f"|format(factura.valor_fob) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Flete:</strong></td>
+                                <td>${{ "%.2f"|format(factura.flete) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculation Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calculator me-2"></i>Cálculos e Impuestos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Impuestos Calculados</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>IEPS ({{ "%.2f"|format(tasas.ieps) }}%):</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.ieps) }}</td>
+                            </tr>
+                            <tr>
+                                <td>IVA ({{ "%.1f"|format(tasas.iva * 100) }}%):</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.iva) }}</td>
+                            </tr>
+                            <tr>
+                                <td>PVR ({{ "%.1f"|format(tasas.pvr * 100) }}%):</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.pvr) }}</td>
+                            </tr>
+                            <tr>
+                                <td>IVA PVR ({{ "%.1f"|format(tasas.iva_pvr * 100) }}%):</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.iva_pvr) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Resumen Total</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Valor CIF:</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.valor_cif) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Impuestos:</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.ieps + factura.iva + factura.pvr + factura.iva_pvr) }}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Total a Pagar:</strong></td>
+                                <td class="text-end"><strong>${{ "%.2f"|format(factura.total_pagar) }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review History -->
+        {% if historial %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Historial de Revisiones
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for registro in historial %}
+                <div class="d-flex mb-3 pb-3 border-bottom">
+                    <div class="flex-shrink-0 me-3">
+                        {% if registro.accion == 'creada' %}
+                            <i class="bi bi-plus-circle text-primary"></i>
+                        {% elif registro.accion == 'enviada_supervisor' %}
+                            <i class="bi bi-arrow-right text-warning"></i>
+                        {% elif registro.accion == 'aprobada_supervisor' %}
+                            <i class="bi bi-check text-success"></i>
+                        {% elif registro.accion == 'rechazada' %}
+                            <i class="bi bi-x-circle text-danger"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ registro.get_accion_display() }}</h6>
+                        <p class="mb-1">{{ registro.usuario.nombre }} - {{ registro.usuario.rol|title }}</p>
+                        {% if registro.comentarios %}
+                            <p class="small text-muted mb-1">{{ registro.comentarios }}</p>
+                        {% endif %}
+                        <small class="text-muted">{{ registro.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Panel -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-check me-2"></i>Decisión de Aprobación
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.decision.label(class="form-label") }}
+                        {{ form.decision(class="form-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.comentarios.label(class="form-label") }}
+                        {{ form.comentarios(class="form-control", rows="4") }}
+                        <div class="form-text">Explica tu decisión (opcional para aprobación, requerido para rechazo)</div>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Información Rápida</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tiempo en Sistema:</span>
+                    <span class="badge bg-info">
+                        Varios días
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Facturas del Usuario:</span>
+                    <span class="badge bg-secondary">{{ factura.usuario.facturas|length }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Facturas Aprobadas:</span>
+                    <span class="badge bg-success">
+                        {{ factura.usuario.facturas|selectattr('estado', 'equalto', 'aprobada')|list|length }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Créditos Restantes:</span>
+                    <span class="badge bg-warning">{{ factura.usuario.creditos }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Attachments -->
+        {% if factura.archivo_factura %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Archivos Adjuntos</h6>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('static', filename='facturas/' + factura.archivo_factura) }}"
+                   class="btn btn-outline-primary btn-sm w-100" target="_blank">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Ver Factura Original
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-require comments for rejection
+document.querySelector('select[name="decision"]').addEventListener('change', function() {
+    const comentarios = document.querySelector('textarea[name="comentarios"]');
+    if (this.value === 'rechazar') {
+        comentarios.required = true;
+        comentarios.placeholder = 'Debes explicar el motivo del rechazo...';
+    } else {
+        comentarios.required = false;
+        comentarios.placeholder = 'Comentarios adicionales (opcional)...';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Factura #{{ factura.id }} - Usuario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Editar Factura #{{ factura.id }}</h1>
+        <p class="text-muted mb-0">Modifica los datos de tu factura</p>
+    </div>
+    <div>
+        <a href="{{ url_for('usuarios.ver_factura', id=factura.id) }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-eye me-2"></i>Ver
+        </a>
+        <a href="{{ url_for('usuarios.mis_facturas') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Mis Facturas
+        </a>
+    </div>
+</div>
+
+<!-- Warning if not editable -->
+{% if not factura.can_edit(current_user) %}
+<div class="alert alert-warning" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Esta factura no se puede editar</strong> porque ya ha sido enviada para revisión o está en proceso de aprobación.
+</div>
+{% else %}
+
+<form method="POST" enctype="multipart/form-data" id="facturaForm">
+    {{ form.hidden_tag() }}
+
+    <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+            <!-- Información del Importador -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building me-2"></i>Información del Importador
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            {{ form.importador.label(class="form-label") }}
+                            {{ form.importador(class="form-control") }}
+                            {% if form.importador.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.importador.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Producto -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box me-2"></i>Información del Producto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            {{ form.descripcion_producto.label(class="form-label") }}
+                            {{ form.descripcion_producto(class="form-control", rows="3") }}
+                            {% if form.descripcion_producto.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.descripcion_producto.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Describe el producto de manera detallada y precisa</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.cantidad.label(class="form-label") }}
+                            {{ form.cantidad(class="form-control", step="0.01") }}
+                            {% if form.cantidad.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.cantidad.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.unidad_medida.label(class="form-label") }}
+                            {{ form.unidad_medida(class="form-select") }}
+                            {% if form.unidad_medida.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.unidad_medida.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Valores Comerciales -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-dollar me-2"></i>Valores Comerciales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.valor_fob.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor_fob(class="form-control", step="0.01") }}
+                            </div>
+                            {% if form.valor_fob.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.valor_fob.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Free On Board - Valor de la mercancía en origen</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.flete.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.flete(class="form-control", step="0.01") }}
+                            </div>
+                            {% if form.flete.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.flete.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Costo del transporte internacional</div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Valor CIF:</strong> <span id="valorCIF">${{ "%.2f"|format(factura.valor_cif) }}</span>
+                                <br><small>El valor CIF se calcula automáticamente como FOB + Flete</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Archivo de Factura -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Archivo de Factura
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if factura.archivo_factura %}
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Archivo actual:</strong> {{ factura.archivo_factura }}
+                            <a href="{{ url_for('static', filename='facturas/' + factura.archivo_factura) }}"
+                               class="btn btn-sm btn-outline-primary ms-2" target="_blank">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        {{ form.archivo_factura.label(class="form-label") }}
+                        {{ form.archivo_factura(class="form-control") }}
+                        {% if form.archivo_factura.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.archivo_factura.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            {% if factura.archivo_factura %}
+                                Selecciona un nuevo archivo solo si deseas reemplazar el actual.
+                            {% else %}
+                                Sube la factura en formato PDF (máximo 16MB).
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-text me-2"></i>Observaciones (Opcional)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.observaciones.label(class="form-label") }}
+                        {{ form.observaciones(class="form-control", rows="3") }}
+                        {% if form.observaciones.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.observaciones.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Información adicional que consideres relevante</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Resumen de Cálculos -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-calculator me-2"></i>Resumen de Cálculos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td>Valor FOB:</td>
+                            <td class="text-end" id="displayFOB">${{ "%.2f"|format(factura.valor_fob) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Flete:</td>
+                            <td class="text-end" id="displayFlete">${{ "%.2f"|format(factura.flete) }}</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong>Valor CIF:</strong></td>
+                            <td class="text-end"><strong id="displayCIF">${{ "%.2f"|format(factura.valor_cif) }}</strong></td>
+                        </tr>
+                    </table>
+
+                    <hr>
+
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td>IEPS ({{ "%.2f"|format(tasas.ieps if tasas else 4.59) }}%):</td>
+                            <td class="text-end" id="displayIEPS">${{ "%.2f"|format(factura.ieps if factura.ieps else 0) }}</td>
+                        </tr>
+                        <tr>
+                            <td>IVA ({{ "%.1f"|format((tasas.iva if tasas else 0.16) * 100) }}%):</td>
+                            <td class="text-end" id="displayIVA">${{ "%.2f"|format(factura.iva if factura.iva else 0) }}</td>
+                        </tr>
+                        <tr>
+                            <td>PVR ({{ "%.1f"|format((tasas.pvr if tasas else 0.20) * 100) }}%):</td>
+                            <td class="text-end" id="displayPVR">${{ "%.2f"|format(factura.pvr if factura.pvr else 0) }}</td>
+                        </tr>
+                        <tr>
+                            <td>IVA PVR ({{ "%.1f"|format((tasas.iva_pvr if tasas else 0.16) * 100) }}%):</td>
+                            <td class="text-end" id="displayIVAPVR">${{ "%.2f"|format(factura.iva_pvr if factura.iva_pvr else 0) }}</td>
+                        </tr>
+                    </table>
+
+                    <hr>
+
+                    <table class="table table-borderless">
+                        <tr class="table-success">
+                            <td><strong>Total a Pagar:</strong></td>
+                            <td class="text-end"><strong class="text-success" id="displayTotal">${{ "%.2f"|format(factura.total_pagar) }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tasas Aplicadas -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Tasas Aplicadas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-2">
+                            <h5 class="text-primary">{{ "%.2f"|format(tasas.ieps if tasas else 4.59) }}%</h5>
+                            <small class="text-muted">IEPS</small>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <h5 class="text-success">{{ "%.1f"|format((tasas.iva if tasas else 0.16) * 100) }}%</h5>
+                            <small class="text-muted">IVA</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-warning">{{ "%.1f"|format((tasas.pvr if tasas else 0.20) * 100) }}%</h5>
+                            <small class="text-muted">PVR</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-info">{{ "%.1f"|format((tasas.iva_pvr if tasas else 0.16) * 100) }}%</h5>
+                            <small class="text-muted">IVA PVR</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Acciones</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="guardar" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>Guardar Cambios
+                        </button>
+
+                        {% if factura.estado == 'borrador' %}
+                            <button type="submit" name="action" value="enviar" class="btn btn-success">
+                                <i class="bi bi-send me-2"></i>Guardar y Enviar
+                            </button>
+                        {% endif %}
+
+                        <button type="button" class="btn btn-outline-secondary" onclick="recalcular()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Recalcular
+                        </button>
+
+                        <a href="{{ url_for('usuarios.ver_factura', id=factura.id) }}" class="btn btn-outline-info">
+                            <i class="bi bi-eye me-2"></i>Vista Previa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tax rates from server
+const tasas = {
+    ieps: {{ tasas.ieps if tasas else 4.59 }},
+    iva: {{ tasas.iva if tasas else 0.16 }},
+    pvr: {{ tasas.pvr if tasas else 0.20 }},
+    iva_pvr: {{ tasas.iva_pvr if tasas else 0.16 }}
+};
+
+// Auto-calculate when FOB or Flete changes
+document.getElementById('valor_fob').addEventListener('input', recalcular);
+document.getElementById('flete').addEventListener('input', recalcular);
+
+function recalcular() {
+    const fob = parseFloat(document.getElementById('valor_fob').value) || 0;
+    const flete = parseFloat(document.getElementById('flete').value) || 0;
+
+    // Calculate CIF
+    const cif = fob + flete;
+
+    // Calculate taxes
+    const ieps = cif * (tasas.ieps / 100);
+    const baseIva = cif + ieps;
+    const iva = baseIva * tasas.iva;
+    const basePvr = baseIva + iva;
+    const pvr = basePvr * tasas.pvr;
+    const ivaPvr = pvr * tasas.iva_pvr;
+
+    // Calculate total
+    const total = cif + ieps + iva + pvr + ivaPvr;
+
+    // Update display
+    document.getElementById('valorCIF').textContent = `$${cif.toFixed(2)}`;
+    document.getElementById('displayFOB').textContent = `$${fob.toFixed(2)}`;
+    document.getElementById('displayFlete').textContent = `$${flete.toFixed(2)}`;
+    document.getElementById('displayCIF').textContent = `$${cif.toFixed(2)}`;
+    document.getElementById('displayIEPS').textContent = `$${ieps.toFixed(2)}`;
+    document.getElementById('displayIVA').textContent = `$${iva.toFixed(2)}`;
+    document.getElementById('displayPVR').textContent = `$${pvr.toFixed(2)}`;
+    document.getElementById('displayIVAPVR').textContent = `$${ivaPvr.toFixed(2)}`;
+    document.getElementById('displayTotal').textContent = `$${total.toFixed(2)}`;
+}
+
+// Form validation
+document.getElementById('facturaForm').addEventListener('submit', function(e) {
+    const action = e.submitter.value;
+
+    if (action === 'enviar') {
+        if (!confirm('¿Estás seguro de enviar esta factura para revisión? Una vez enviada no podrás editarla.')) {
+            e.preventDefault();
+            return false;
+        }
+    }
+
+    // Basic validation
+    const fob = parseFloat(document.getElementById('valor_fob').value);
+    const flete = parseFloat(document.getElementById('flete').value);
+
+    if (fob <= 0) {
+        alert('El valor FOB debe ser mayor a 0');
+        e.preventDefault();
+        return false;
+    }
+
+    if (flete < 0) {
+        alert('El flete no puede ser negativo');
+        e.preventDefault();
+        return false;
+    }
+
+    return true;
+});
+
+// File upload preview
+document.getElementById('archivo_factura').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        if (file.size > 16 * 1024 * 1024) { // 16MB
+            alert('El archivo es demasiado grande. El tamaño máximo es 16MB.');
+            this.value = '';
+            return;
+        }
+
+        if (!file.type.includes('pdf')) {
+            alert('Solo se permiten archivos PDF.');
+            this.value = '';
+            return;
+        }
+    }
+});
+
+// Initial calculation
+recalcular();
+</script>
+{% endblock %}

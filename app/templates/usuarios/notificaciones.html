@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones - Usuario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Notificaciones</h1>
+        <p class="text-muted mb-0">Mantente al día con el estado de tus facturas</p>
+    </div>
+    <div>
+        {% set unread_count = notificaciones|selectattr('leida', 'equalto', false)|list|length %}
+        {% if unread_count > 0 %}
+            <button class="btn btn-outline-primary me-2" onclick="marcarTodasLeidas()">
+                <i class="bi bi-check-all me-2"></i>Marcar Todas como Leídas
+            </button>
+        {% endif %}
+        <a href="{{ url_for('usuarios.dashboard') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-bell display-5 mb-2"></i>
+                <h4 class="mb-1">{{ notificaciones|length }}</h4>
+                <p class="mb-0">Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-bell-fill display-5 mb-2"></i>
+                <h4 class="mb-1">{{ unread_count }}</h4>
+                <p class="mb-0">Sin Leer</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-5 mb-2"></i>
+                <h4 class="mb-1">{{ notificaciones|selectattr('tipo', 'equalto', 'success')|list|length }}</h4>
+                <p class="mb-0">Buenas Noticias</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-5 mb-2"></i>
+                <h4 class="mb-1">{{ notificaciones|selectattr('creado_en', 'gt', seven_days_ago)|list|length }}</h4>
+                <p class="mb-0">Esta Semana</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="filtroTipo" class="form-label">Tipo</label>
+                <select id="filtroTipo" class="form-select">
+                    <option value="">Todos los tipos</option>
+                    <option value="success">Buenas noticias</option>
+                    <option value="warning">Advertencias</option>
+                    <option value="info">Información</option>
+                    <option value="error">Errores</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroEstado" class="form-label">Estado</label>
+                <select id="filtroEstado" class="form-select">
+                    <option value="">Todas</option>
+                    <option value="no_leida">Sin leer</option>
+                    <option value="leida">Leídas</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroFecha" class="form-label">Período</label>
+                <select id="filtroFecha" class="form-select">
+                    <option value="">Todas las fechas</option>
+                    <option value="hoy">Hoy</option>
+                    <option value="semana">Esta semana</option>
+                    <option value="mes">Este mes</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-primary w-100" onclick="aplicarFiltros()">
+                    <i class="bi bi-funnel me-2"></i>Filtrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notificaciones -->
+<div class="row">
+    <div class="col-12">
+        {% if notificaciones %}
+            <div id="notificacionesContainer">
+                {% for notificacion in notificaciones %}
+                <div class="card mb-3 notificacion-item {{ 'border-warning' if not notificacion.leida else '' }}"
+                     data-tipo="{{ notificacion.tipo }}"
+                     data-leida="{{ 'leida' if notificacion.leida else 'no_leida' }}"
+                     data-fecha="{{ notificacion.creado_en.isoformat() }}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start">
+                            <!-- Icon -->
+                            <div class="flex-shrink-0 me-3">
+                                {% if notificacion.tipo == 'success' %}
+                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                {% elif notificacion.tipo == 'warning' %}
+                                    <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                                {% elif notificacion.tipo == 'error' %}
+                                    <i class="bi bi-exclamation-circle-fill text-danger fs-4"></i>
+                                {% else %}
+                                    <i class="bi bi-info-circle-fill text-info fs-4"></i>
+                                {% endif %}
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="mb-1 {{ 'fw-bold' if not notificacion.leida else '' }}">
+                                        {{ notificacion.titulo }}
+                                        {% if not notificacion.leida %}
+                                            <span class="badge bg-warning ms-2">Nuevo</span>
+                                        {% endif %}
+                                    </h5>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                                data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% if not notificacion.leida %}
+                                                <li>
+                                                    <a class="dropdown-item" href="#"
+                                                       onclick="marcarLeida({{ notificacion.id }})">
+                                                        <i class="bi bi-check me-2"></i>Marcar como leída
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <a class="dropdown-item" href="#"
+                                                       onclick="marcarNoLeida({{ notificacion.id }})">
+                                                        <i class="bi bi-circle me-2"></i>Marcar como no leída
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#"
+                                                   onclick="eliminarNotificacion({{ notificacion.id }})">
+                                                    <i class="bi bi-trash me-2"></i>Eliminar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <p class="mb-2 {{ 'text-muted' if notificacion.leida else '' }}">
+                                    {{ notificacion.mensaje }}
+                                </p>
+
+                                <!-- Factura Link -->
+                                {% if notificacion.factura_id %}
+                                    <a href="{{ url_for('usuarios.ver_factura', id=notificacion.factura_id) }}"
+                                       class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="bi bi-file-earmark-text me-1"></i>Ver Factura #{{ notificacion.factura_id }}
+                                    </a>
+                                {% endif %}
+
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>
+                                    {{ notificacion.creado_en.strftime('%d/%m/%Y %H:%M') }}
+                                    {% set tiempo_transcurrido = 3600 %}
+                                    {% if tiempo_transcurrido < 3600 %}
+                                        - Hace {{ (tiempo_transcurrido / 60)|int }} minutos
+                                    {% elif tiempo_transcurrido < 86400 %}
+                                        - Hace {{ (tiempo_transcurrido / 3600)|int }} horas
+                                    {% else %}
+                                        - Hace {{ (tiempo_transcurrido / 86400)|int }} días
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Load More -->
+            {% if notificaciones|length >= 20 %}
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="cargarMas()">
+                        <i class="bi bi-arrow-down-circle me-2"></i>Cargar Más Notificaciones
+                    </button>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-bell-slash display-4 text-muted mb-3"></i>
+                    <h4 class="text-muted">No tienes notificaciones</h4>
+                    <p class="text-muted mb-4">Las notificaciones sobre el estado de tus facturas aparecerán aquí</p>
+                    <a href="{{ url_for('usuarios.crear_factura') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Crear Primera Factura
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary -->
+{% if notificaciones %}
+<div class="card mt-4">
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <h6 class="text-success">Facturas Aprobadas</h6>
+                <h4>{{ notificaciones|selectattr('tipo', 'equalto', 'success')|selectattr('titulo', 'search', 'aprobada')|list|length }}</h4>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-warning">En Revisión</h6>
+                <h4>{{ notificaciones|selectattr('tipo', 'equalto', 'info')|selectattr('titulo', 'search', 'revisión')|list|length }}</h4>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-danger">Rechazadas</h6>
+                <h4>{{ notificaciones|selectattr('tipo', 'equalto', 'error')|selectattr('titulo', 'search', 'rechazada')|list|length }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function marcarLeida(notificacionId) {
+    fetch(`/usuario/notificacion/${notificacionId}/marcar_leida`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function marcarNoLeida(notificacionId) {
+    fetch(`/usuario/notificacion/${notificacionId}/marcar_no_leida`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function marcarTodasLeidas() {
+    if (confirm('¿Marcar todas las notificaciones como leídas?')) {
+        fetch('/usuario/notificaciones/marcar_todas_leidas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function eliminarNotificacion(notificacionId) {
+    if (confirm('¿Estás seguro de eliminar esta notificación?')) {
+        fetch(`/usuario/notificacion/${notificacionId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function aplicarFiltros() {
+    const filtroTipo = document.getElementById('filtroTipo').value;
+    const filtroEstado = document.getElementById('filtroEstado').value;
+    const filtroFecha = document.getElementById('filtroFecha').value;
+
+    const notificaciones = document.querySelectorAll('.notificacion-item');
+    const ahora = new Date();
+
+    notificaciones.forEach(notif => {
+        let mostrar = true;
+
+        // Filtro por tipo
+        if (filtroTipo && notif.dataset.tipo !== filtroTipo) {
+            mostrar = false;
+        }
+
+        // Filtro por estado
+        if (filtroEstado && notif.dataset.leida !== filtroEstado) {
+            mostrar = false;
+        }
+
+        // Filtro por fecha
+        if (filtroFecha) {
+            const fechaNotif = new Date(notif.dataset.fecha);
+            const diffTime = ahora - fechaNotif;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (filtroFecha === 'hoy' && diffDays > 1) {
+                mostrar = false;
+            } else if (filtroFecha === 'semana' && diffDays > 7) {
+                mostrar = false;
+            } else if (filtroFecha === 'mes' && diffDays > 30) {
+                mostrar = false;
+            }
+        }
+
+        notif.style.display = mostrar ? 'block' : 'none';
+    });
+}
+
+function cargarMas() {
+    // Implementar carga de más notificaciones via AJAX
+    fetch('/usuario/notificaciones/cargar_mas')
+        .then(response => response.json())
+        .then(data => {
+            // Agregar las nuevas notificaciones al DOM
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Auto-refresh every 30 seconds for new notifications
+setInterval(() => {
+    fetch('/usuario/notificaciones/check_nuevas')
+        .then(response => response.json())
+        .then(data => {
+            if (data.nuevas > 0) {
+                // Show notification badge or update counter
+                const badge = document.querySelector('.notification-badge');
+                if (badge) {
+                    badge.textContent = data.nuevas;
+                    badge.style.display = 'inline';
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}, 30000);
+</script>
+{% endblock %}

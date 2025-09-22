@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Facturas - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Gestión de Facturas</h1>
+        <p class="text-muted mb-0">Administra todas las facturas del sistema</p>
+    </div>
+    <a href="{{ url_for('admins.dashboard') }}" class="btn btn-secondary btn-custom">
+        <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            {{ form.hidden_tag() }}
+
+            <div class="col-md-2">
+                {{ form.estado.label(class="form-label") }}
+                {{ form.estado(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.usuario.label(class="form-label") }}
+                {{ form.usuario(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_desde.label(class="form-label") }}
+                {{ form.fecha_desde(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_hasta.label(class="form-label") }}
+                {{ form.fecha_hasta(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.buscar.label(class="form-label") }}
+                {{ form.buscar(class="form-control", placeholder="Importador...") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Facturas Table -->
+<div class="card">
+    <div class="card-body">
+        {% if facturas.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Importador</th>
+                            <th>Estado</th>
+                            <th>Total</th>
+                            <th>Fecha Creación</th>
+                            <th>Última Actualización</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for factura in facturas.items %}
+                        <tr>
+                            <td><strong>{{ factura.id }}</strong></td>
+                            <td>
+                                <div>
+                                    <strong>{{ factura.usuario.nombre }}</strong>
+                                    <br><small class="text-muted">{{ factura.usuario.email }}</small>
+                                </div>
+                            </td>
+                            <td>{{ factura.importador }}</td>
+                            <td>
+                                {% set estado_class = {
+                                    'borrador': 'secondary',
+                                    'pendiente_supervisor': 'warning',
+                                    'pendiente_admin': 'info',
+                                    'aprobada': 'success',
+                                    'suspendida': 'danger',
+                                    'cancelada': 'dark'
+                                } %}
+                                <span class="badge bg-{{ estado_class.get(factura.estado, 'secondary') }}">
+                                    {{ factura.get_estado_display() }}
+                                </span>
+                            </td>
+                            <td>${{ "%.2f"|format(factura.total_pagar) }}</td>
+                            <td>{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ factura.actualizado_en.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admins.ver_factura', id=factura.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if factura.estado in ['pendiente_admin'] %}
+                                        <a href="{{ url_for('admins.aprobar_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-outline-success" title="Aprobar">
+                                            <i class="bi bi-check-circle"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if factura.estado not in ['aprobada', 'cancelada'] %}
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="cancelarFactura({{ factura.id }})" title="Cancelar">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-file-earmark-text display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">No se encontraron facturas</h5>
+                <p class="text-muted">Prueba ajustando los filtros de búsqueda</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <h4>{{ facturas.items|length if facturas.items else 0 }}</h4>
+                <small>Facturas Mostradas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <h4>{{ facturas.items|selectattr('estado', 'equalto', 'aprobada')|list|length if facturas.items else 0 }}</h4>
+                <small>Aprobadas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <h4>{{ facturas.items|selectattr('estado', 'in', ['pendiente_supervisor', 'pendiente_admin'])|list|length if facturas.items else 0 }}</h4>
+                <small>Pendientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format(facturas.items|selectattr('estado', 'equalto', 'aprobada')|map(attribute='total_pagar')|sum if facturas.items else 0) }}</h4>
+                <small>Total Aprobado</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function cancelarFactura(facturaId) {
+    if (confirm('¿Estás seguro de cancelar esta factura? Esta acción no se puede deshacer.')) {
+        fetch(`/admin/cancelar_factura/${facturaId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cancelar la factura: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Configurar Tasas - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Configuración de Tasas</h1>
+        <p class="text-muted mb-0">Actualiza las tasas de impuestos del sistema</p>
+    </div>
+    <a href="{{ url_for('admins.dashboard') }}" class="btn btn-secondary btn-custom">
+        <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-percent me-2"></i>Tasas de Impuestos
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.ieps.label(class="form-label") }}
+                            {{ form.ieps(class="form-control") }}
+                            {% if form.ieps.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.ieps.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Impuesto Especial sobre Producción y Servicios</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.iva.label(class="form-label") }}
+                            {{ form.iva(class="form-control") }}
+                            {% if form.iva.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.iva.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Impuesto al Valor Agregado</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.pvr.label(class="form-label") }}
+                            {{ form.pvr(class="form-control") }}
+                            {% if form.pvr.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.pvr.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Precio de Venta al Público</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.iva_pvr.label(class="form-label") }}
+                            {{ form.iva_pvr(class="form-control") }}
+                            {% if form.iva_pvr.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.iva_pvr.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">IVA aplicado al PVR</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Tasas Actuales
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-primary">{{ "%.2f"|format(tasas_actual.ieps) }}%</h4>
+                        <small class="text-muted">IEPS</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-success">{{ "%.1f"|format(tasas_actual.iva * 100) }}%</h4>
+                        <small class="text-muted">IVA</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-warning">{{ "%.1f"|format(tasas_actual.pvr * 100) }}%</h4>
+                        <small class="text-muted">PVR</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-info">{{ "%.1f"|format(tasas_actual.iva_pvr * 100) }}%</h4>
+                        <small class="text-muted">IVA PVR</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

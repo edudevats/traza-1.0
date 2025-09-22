@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Usuario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">¡Bienvenido, {{ current_user.nombre }}!</h1>
+        <p class="text-muted mb-0">Gestiona tus facturas desde aquí</p>
+    </div>
+    <a href="{{ url_for('usuarios.crear_factura') }}" class="btn btn-primary btn-custom">
+        <i class="bi bi-plus-circle me-2"></i>Nueva Factura
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-credit-card display-4 mb-2"></i>
+                <h3 class="mb-1">{{ current_user.creditos }}</h3>
+                <p class="mb-0">Créditos Disponibles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_totales }}</h3>
+                <p class="mb-0">Total de Facturas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-hourglass-split display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_pendientes }}</h3>
+                <p class="mb-0">En Proceso</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-2"></i>
+                <h3 class="mb-1">{{ facturas_aprobadas }}</h3>
+                <p class="mb-0">Aprobadas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Invoices -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Facturas Recientes
+                </h5>
+                <a href="{{ url_for('usuarios.mis_facturas') }}" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+            </div>
+            <div class="card-body">
+                {% if facturas_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Importador</th>
+                                    <th>Estado</th>
+                                    <th>Total</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for factura in facturas_recientes %}
+                                <tr>
+                                    <td><strong>{{ factura.id }}</strong></td>
+                                    <td>{{ factura.importador }}</td>
+                                    <td>
+                                        {% set estado_class = {
+                                            'borrador': 'secondary',
+                                            'pendiente_supervisor': 'warning',
+                                            'pendiente_admin': 'info',
+                                            'aprobada': 'success',
+                                            'suspendida': 'danger',
+                                            'cancelada': 'dark'
+                                        } %}
+                                        <span class="badge bg-{{ estado_class.get(factura.estado, 'secondary') }}">
+                                            {{ factura.get_estado_display() }}
+                                        </span>
+                                    </td>
+                                    <td>${{ "%.2f"|format(factura.total_pagar) }}</td>
+                                    <td>{{ factura.creado_en.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('usuarios.ver_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if factura.can_edit(current_user) %}
+                                        <a href="{{ url_for('usuarios.editar_factura', id=factura.id) }}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark-plus display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">No tienes facturas aún</h5>
+                        <p class="text-muted mb-3">¡Crea tu primera factura para comenzar!</p>
+                        <a href="{{ url_for('usuarios.crear_factura') }}" class="btn btn-primary btn-custom">
+                            <i class="bi bi-plus-circle me-2"></i>Crear Primera Factura
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-bell me-2"></i>Notificaciones
+                </h5>
+                <a href="{{ url_for('usuarios.notificaciones') }}" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+            </div>
+            <div class="card-body">
+                {% if notificaciones %}
+                    {% for notif in notificaciones %}
+                    <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            {% if notif.tipo == 'success' %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                            {% elif notif.tipo == 'warning' %}
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                            {% elif notif.tipo == 'error' %}
+                                <i class="bi bi-exclamation-circle-fill text-danger"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill text-info"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ notif.titulo }}</h6>
+                            <p class="mb-1 small text-muted">{{ notif.mensaje }}</p>
+                            <small class="text-muted">{{ notif.creado_en.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-bell-slash display-6 text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No tienes notificaciones</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Credit Status -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-wallet2 me-2"></i>Estado de Créditos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="display-6 mb-2">
+                        {% if current_user.creditos > 5 %}
+                            <i class="bi bi-emoji-smile text-success"></i>
+                        {% elif current_user.creditos > 0 %}
+                            <i class="bi bi-emoji-neutral text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-emoji-frown text-danger"></i>
+                        {% endif %}
+                    </div>
+                    <h4 class="mb-2">{{ current_user.creditos }} créditos</h4>
+                    {% if current_user.creditos > 0 %}
+                        <p class="text-muted">Puedes crear {{ current_user.creditos }} facturas más</p>
+                    {% else %}
+                        <p class="text-danger">Sin créditos disponibles</p>
+                        <small class="text-muted">Contacta al administrador para obtener más créditos</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

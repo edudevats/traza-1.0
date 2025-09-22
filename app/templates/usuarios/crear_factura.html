@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Factura - Usuario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Crear Nueva Factura</h1>
+        <p class="text-muted mb-0">Completa la información para generar una nueva factura</p>
+    </div>
+    <div class="text-end">
+        <span class="badge bg-info fs-6">{{ current_user.creditos }} créditos disponibles</span>
+    </div>
+</div>
+
+{% if current_user.creditos <= 0 %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Sin créditos disponibles</strong> - Contacta al administrador para obtener más créditos.
+</div>
+{% else %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-plus me-2"></i>Información de la Factura
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <!-- Información del Importador -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-building me-2"></i>Información del Importador
+                            </h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.importador.label(class="form-label fw-bold") }}
+                            {{ form.importador() }}
+                            {% if form.importador.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.importador.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.rfc.label(class="form-label fw-bold") }}
+                            {{ form.rfc() }}
+                            {% if form.rfc.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.rfc.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información Aduanal -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-truck me-2"></i>Información Aduanal
+                            </h6>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.numero_pedimento.label(class="form-label fw-bold") }}
+                            {{ form.numero_pedimento() }}
+                            {% if form.numero_pedimento.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.numero_pedimento.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.numero_aduana.label(class="form-label fw-bold") }}
+                            {{ form.numero_aduana() }}
+                            {% if form.numero_aduana.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.numero_aduana.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.patente_aduanal.label(class="form-label fw-bold") }}
+                            {{ form.patente_aduanal() }}
+                            {% if form.patente_aduanal.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.patente_aduanal.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Tipo de Carga -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-box me-2"></i>Tipo de Carga
+                            </h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.tipo.label(class="form-label fw-bold") }}
+                            {{ form.tipo() }}
+                            {% if form.tipo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.tipo.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Volúmenes -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-droplet me-2"></i>Volúmenes (Litros)
+                            </h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.litros_rem1.label(class="form-label fw-bold") }}
+                            {{ form.litros_rem1() }}
+                            {% if form.litros_rem1.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.litros_rem1.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.litros_rem2.label(class="form-label fw-bold") }}
+                            {{ form.litros_rem2() }}
+                            {% if form.litros_rem2.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.litros_rem2.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.litros_carrotanque.label(class="form-label fw-bold") }}
+                            {{ form.litros_carrotanque() }}
+                            {% if form.litros_carrotanque.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.litros_carrotanque.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.litros_barcaza.label(class="form-label fw-bold") }}
+                            {{ form.litros_barcaza() }}
+                            {% if form.litros_barcaza.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.litros_barcaza.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información Financiera -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-currency-dollar me-2"></i>Información Financiera
+                            </h6>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.precio_molecula_galon.label(class="form-label fw-bold") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.precio_molecula_galon(class="form-control") }}
+                            </div>
+                            {% if form.precio_molecula_galon.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.precio_molecula_galon.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.tipo_cambio.label(class="form-label fw-bold") }}
+                            <div class="input-group">
+                                <span class="input-group-text">MXN</span>
+                                {{ form.tipo_cambio(class="form-control") }}
+                            </div>
+                            {% if form.tipo_cambio.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.tipo_cambio.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.densidad.label(class="form-label fw-bold") }}
+                            {{ form.densidad() }}
+                            {% if form.densidad.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.densidad.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.peso_bruto.label(class="form-label fw-bold") }}
+                            <div class="input-group">
+                                {{ form.peso_bruto(class="form-control") }}
+                                <span class="input-group-text">kg</span>
+                            </div>
+                            {% if form.peso_bruto.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.peso_bruto.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('usuarios.dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancelar
+                        </a>
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Tax Information -->
+        {% if tasas %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calculator me-2"></i>Tasas Actuales
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="border rounded p-2">
+                            <small class="text-muted d-block">IEPS</small>
+                            <strong>${{ "%.2f"|format(tasas.ieps) }}</strong>
+                            <small class="text-muted d-block">por galón</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="border rounded p-2">
+                            <small class="text-muted d-block">IVA</small>
+                            <strong>{{ "%.1f"|format(tasas.iva * 100) }}%</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <small class="text-muted d-block">PVR</small>
+                            <strong>${{ "%.2f"|format(tasas.pvr) }}</strong>
+                            <small class="text-muted d-block">por galón</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <small class="text-muted d-block">IVA PVR</small>
+                            <strong>{{ "%.1f"|format(tasas.iva_pvr * 100) }}%</strong>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Estas tasas se aplicarán automáticamente a tu factura.
+                </small>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Help Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-question-circle me-2"></i>Ayuda
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Completa todos los campos obligatorios</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Ingresa al menos un volumen mayor a 0</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Los cálculos se harán automáticamente</small>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Se descontará 1 crédito al crear la factura</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+
+    // Auto-calculate totals (basic preview)
+    function calculatePreview() {
+        const factor = 0.264172; // Litros to gallons
+        const rem1 = parseFloat(document.getElementById('litros_rem1').value) || 0;
+        const rem2 = parseFloat(document.getElementById('litros_rem2').value) || 0;
+        const carrotanque = parseFloat(document.getElementById('litros_carrotanque').value) || 0;
+        const barcaza = parseFloat(document.getElementById('litros_barcaza').value) || 0;
+        const precio = parseFloat(document.getElementById('precio_molecula_galon').value) || 0;
+
+        const totalLitros = rem1 + rem2 + carrotanque + barcaza;
+        const totalGalones = totalLitros * factor;
+        const importeInvoice = totalGalones * precio;
+
+        // Update preview if elements exist
+        const previewElement = document.getElementById('preview-total');
+        if (previewElement) {
+            previewElement.textContent = `~$${importeInvoice.toFixed(2)} USD`;
+        }
+    }
+
+    // Add event listeners for real-time calculation
+    document.addEventListener('DOMContentLoaded', function() {
+        const volumeInputs = ['litros_rem1', 'litros_rem2', 'litros_carrotanque', 'litros_barcaza', 'precio_molecula_galon'];
+        volumeInputs.forEach(function(inputId) {
+            const element = document.getElementById(inputId);
+            if (element) {
+                element.addEventListener('input', calculatePreview);
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Facturas Pendientes - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Facturas Pendientes de Aprobación</h1>
+        <p class="text-muted mb-0">Revisa y aprueba las facturas enviadas</p>
+    </div>
+    <div>
+        <span class="badge bg-warning fs-6 me-2">{{ facturas.items|length if facturas.items else 0 }} pendientes</span>
+        <a href="{{ url_for('admins.dashboard') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+{% if facturas.items %}
+    <div class="row">
+        {% for factura in facturas.items %}
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Factura #{{ factura.id }}</h6>
+                        <small class="text-muted">{{ factura.usuario.nombre }}</small>
+                    </div>
+                    <div>
+                        {% if factura.estado == 'pendiente_supervisor' %}
+                            <span class="badge bg-warning">Pendiente Supervisor</span>
+                        {% elif factura.estado == 'pendiente_admin' %}
+                            <span class="badge bg-info">Pendiente Admin</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Importador:</strong><br>
+                            <span class="text-muted">{{ factura.importador }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Total a Pagar:</strong><br>
+                            <span class="text-success fs-5">${{ "%.2f"|format(factura.total_pagar) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Fecha Creación:</strong><br>
+                            <span class="text-muted">{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Última Actualización:</strong><br>
+                            <span class="text-muted">{{ factura.actualizado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Key Details -->
+                    <div class="row small text-muted mb-3">
+                        <div class="col-4">
+                            <strong>Producto:</strong><br>
+                            {{ factura.descripcion_producto[:30] }}...
+                        </div>
+                        <div class="col-4">
+                            <strong>Cantidad:</strong><br>
+                            {{ factura.cantidad }} {{ factura.unidad_medida }}
+                        </div>
+                        <div class="col-4">
+                            <strong>Valor CIF:</strong><br>
+                            ${{ "%.2f"|format(factura.valor_cif) }}
+                        </div>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small>Progreso de Aprobación</small>
+                            <small>
+                                {% if factura.estado == 'pendiente_supervisor' %}
+                                    25%
+                                {% elif factura.estado == 'pendiente_admin' %}
+                                    75%
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-info" role="progressbar"
+                                 style="width: {% if factura.estado == 'pendiente_supervisor' %}25%{% elif factura.estado == 'pendiente_admin' %}75%{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admins.ver_factura', id=factura.id) }}"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye me-1"></i>Ver Detalles
+                        </a>
+                        {% if factura.estado == 'pendiente_admin' %}
+                            <a href="{{ url_for('admins.aprobar_factura', id=factura.id) }}"
+                               class="btn btn-success btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Revisar y Aprobar
+                            </a>
+                        {% else %}
+                            <span class="badge bg-warning">Esperando Supervisor</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bulk Actions -->
+    {% if facturas.items|selectattr('estado', 'equalto', 'pendiente_admin')|list|length > 0 %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0">Acciones en Lote</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" onclick="aprobarTodas()">
+                    <i class="bi bi-check-all me-2"></i>Aprobar Todas las Pendientes
+                </button>
+                <button class="btn btn-outline-secondary" onclick="exportarPendientes()">
+                    <i class="bi bi-download me-2"></i>Exportar Lista
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-check-all display-4 text-success mb-3"></i>
+            <h4 class="text-muted">¡Excelente trabajo!</h4>
+            <p class="text-muted mb-4">No hay facturas pendientes de aprobación</p>
+            <a href="{{ url_for('admins.gestionar_facturas') }}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-text me-2"></i>Ver Todas las Facturas
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function aprobarTodas() {
+    if (confirm('¿Estás seguro de aprobar todas las facturas pendientes de administrador?')) {
+        fetch('/admin/aprobar_todas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Se aprobaron ${data.count} facturas exitosamente`);
+                location.reload();
+            } else {
+                alert('Error al aprobar las facturas: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+
+function exportarPendientes() {
+    window.location.href = '/admin/exportar_pendientes';
+}
+</script>
+{% endblock %}

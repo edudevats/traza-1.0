@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Facturas por Revisar - Supervisor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Facturas por Revisar</h1>
+        <p class="text-muted mb-0">Revisa y aprueba las facturas enviadas por los usuarios</p>
+    </div>
+    <div>
+        <span class="badge bg-warning fs-6 me-2">{{ facturas.items|length if facturas.items else 0 }} pendientes</span>
+        <a href="{{ url_for('supervisores.dashboard') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            {{ form.hidden_tag() }}
+
+            <div class="col-md-3">
+                {{ form.usuario.label(class="form-label") }}
+                {{ form.usuario(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_desde.label(class="form-label") }}
+                {{ form.fecha_desde(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.fecha_hasta.label(class="form-label") }}
+                {{ form.fecha_hasta(class="form-control") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.monto_min.label(class="form-label") }}
+                {{ form.monto_min(class="form-control", placeholder="Monto mín.") }}
+            </div>
+            <div class="col-md-2">
+                {{ form.buscar.label(class="form-label") }}
+                {{ form.buscar(class="form-control", placeholder="Importador...") }}
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Facturas Grid -->
+{% if facturas.items %}
+    <div class="row">
+        {% for factura in facturas.items %}
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Factura #{{ factura.id }}</h6>
+                        <small class="text-muted">{{ factura.usuario.nombre }}</small>
+                    </div>
+                    <div>
+                        {% set dias = 1 %}
+                        {% if dias > 3 %}
+                            <span class="badge bg-danger">Urgente</span>
+                        {% elif dias > 1 %}
+                            <span class="badge bg-warning">Prioridad</span>
+                        {% else %}
+                            <span class="badge bg-success">Normal</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong>Importador:</strong><br>
+                            <span class="text-muted">{{ factura.importador[:25] }}{% if factura.importador|length > 25 %}...{% endif %}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Total:</strong><br>
+                            <span class="text-success fs-6"><strong>${{ "%.2f"|format(factura.total_pagar) }}</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong>Producto:</strong><br>
+                            <span class="text-muted small">{{ factura.descripcion_producto[:20] }}...</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Cantidad:</strong><br>
+                            <span class="text-muted">{{ factura.cantidad }} {{ factura.unidad_medida }}</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>Creada:</strong>
+                            <span class="text-muted">{{ factura.creado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                            <br>
+                            <small class="text-muted">Hace {{ dias }} día{{ 's' if dias != 1 else '' }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Progress indicator -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small>Progreso</small>
+                            <small>25%</small>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: 25%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Key numbers -->
+                    <div class="row small text-muted">
+                        <div class="col-6">
+                            <strong>Valor CIF:</strong><br>
+                            ${{ "%.2f"|format(factura.valor_cif) }}
+                        </div>
+                        <div class="col-6">
+                            <strong>Total Impuestos:</strong><br>
+                            ${{ "%.2f"|format(factura.ieps + factura.iva + factura.pvr + factura.iva_pvr) }}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('supervisores.ver_factura', id=factura.id) }}"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye me-1"></i>Ver
+                    </a>
+                    <a href="{{ url_for('supervisores.revisar_factura', id=factura.id) }}"
+                       class="btn btn-warning btn-sm">
+                        <i class="bi bi-clipboard-check me-1"></i>Revisar
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0">Acciones en Lote</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-success" onclick="aprobarSeleccionadas()">
+                    <i class="bi bi-check-all me-2"></i>Aprobar Seleccionadas
+                </button>
+                <button class="btn btn-outline-warning" onclick="marcarPrioridad()">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Marcar Prioridad
+                </button>
+                <button class="btn btn-outline-info" onclick="exportarLista()">
+                    <i class="bi bi-download me-2"></i>Exportar Lista
+                </button>
+                <div class="ms-auto">
+                    <select class="form-select form-select-sm" onchange="filtrarPorPrioridad(this.value)">
+                        <option value="">Todas las prioridades</option>
+                        <option value="alta">Alta prioridad</option>
+                        <option value="media">Media prioridad</option>
+                        <option value="normal">Normal</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-check-all display-4 text-success mb-3"></i>
+            <h4 class="text-muted">¡Excelente trabajo!</h4>
+            <p class="text-muted mb-4">No hay facturas pendientes de revisión</p>
+            <a href="{{ url_for('supervisores.mis_revisiones') }}" class="btn btn-primary">
+                <i class="bi bi-check2-all me-2"></i>Ver Mis Revisiones
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Summary Stats -->
+{% if facturas.items %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <h4>{{ facturas.items|length if facturas.items else 0 }}</h4>
+                <small>Total Pendientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card danger">
+            <div class="card-body text-center">
+                <h4>{{ ((facturas.items|length if facturas.items else 0) / 4)|round|int }}</h4>
+                <small>Urgentes (+3 días)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format(facturas.items|map(attribute='total_pagar')|sum if facturas.items else 0) }}</h4>
+                <small>Monto Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <h4>${{ "%.0f"|format((facturas.items|map(attribute='total_pagar')|sum) / (facturas.items|length) if facturas.items and facturas.items|length > 0 else 0) }}</h4>
+                <small>Promedio</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function aprobarSeleccionadas() {
+    const seleccionadas = document.querySelectorAll('input[name="facturas_seleccionadas"]:checked');
+    if (seleccionadas.length === 0) {
+        alert('Selecciona al menos una factura');
+        return;
+    }
+
+    const ids = Array.from(seleccionadas).map(cb => cb.value);
+
+    if (confirm(`¿Aprobar ${ids.length} facturas seleccionadas?`)) {
+        fetch('/supervisor/aprobar_lote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            },
+            body: JSON.stringify({facturas: ids})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Se aprobaron ${data.count} facturas`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function marcarPrioridad() {
+    // Logic to mark selected invoices as priority
+}
+
+function exportarLista() {
+    window.location.href = '/supervisor/exportar_pendientes';
+}
+
+function filtrarPorPrioridad(prioridad) {
+    const cards = document.querySelectorAll('.card.border-warning');
+    cards.forEach(card => {
+        const badge = card.querySelector('.badge');
+        if (!prioridad ||
+            (prioridad === 'alta' && badge.classList.contains('bg-danger')) ||
+            (prioridad === 'media' && badge.classList.contains('bg-warning')) ||
+            (prioridad === 'normal' && badge.classList.contains('bg-success'))) {
+            card.parentElement.style.display = 'block';
+        } else {
+            card.parentElement.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

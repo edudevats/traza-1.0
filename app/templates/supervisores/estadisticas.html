@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block title %}Estadísticas - Supervisor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Estadísticas de Supervisión</h1>
+        <p class="text-muted mb-0">Análisis de tu rendimiento como supervisor</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary me-2" onclick="exportarEstadisticas()">
+            <i class="bi bi-download me-2"></i>Exportar
+        </button>
+        <a href="{{ url_for('supervisores.dashboard') }}" class="btn btn-secondary btn-custom">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Period Selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="periodo" class="form-label">Período</label>
+                <select name="periodo" id="periodo" class="form-select">
+                    <option value="semana" {{ 'selected' if request.args.get('periodo') == 'semana' }}>Esta Semana</option>
+                    <option value="mes" {{ 'selected' if request.args.get('periodo') == 'mes' }}>Este Mes</option>
+                    <option value="trimestre" {{ 'selected' if request.args.get('periodo') == 'trimestre' }}>Este Trimestre</option>
+                    <option value="personalizado" {{ 'selected' if request.args.get('periodo') == 'personalizado' }}>Personalizado</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control"
+                       value="{{ request.args.get('fecha_inicio', '') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                <input type="date" name="fecha_fin" id="fecha_fin" class="form-control"
+                       value="{{ request.args.get('fecha_fin', '') }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Key Performance Indicators -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="bi bi-clipboard-check display-4 mb-2"></i>
+                <h3 class="mb-1">{{ stats.total_revisadas }}</h3>
+                <p class="mb-0">Facturas Revisadas</p>
+                <small class="text-white-50">
+                    {% if stats.cambio_revisadas >= 0 %}+{% endif %}{{ stats.cambio_revisadas }}% vs período anterior
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-2"></i>
+                <h3 class="mb-1">{{ "%.1f"|format(stats.tasa_aprobacion) }}%</h3>
+                <p class="mb-0">Tasa de Aprobación</p>
+                <small class="text-white-50">
+                    {{ stats.aprobadas }} de {{ stats.total_revisadas }} facturas
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-4 mb-2"></i>
+                <h3 class="mb-1">{{ stats.tiempo_promedio_horas }}h</h3>
+                <p class="mb-0">Tiempo Promedio</p>
+                <small class="text-white-50">
+                    {{ stats.tiempo_promedio_minutos }} minutos por revisión
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-4 mb-2"></i>
+                <h3 class="mb-1">{{ "%.1f"|format(stats.productividad) }}</h3>
+                <p class="mb-0">Índice Productividad</p>
+                <small class="text-white-50">
+                    Facturas por día hábil
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Charts Column -->
+    <div class="col-lg-8">
+        <!-- Rendimiento Diario -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart-line me-2"></i>Rendimiento Diario
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="rendimientoDiarioChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribución de Decisiones -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Distribución de Decisiones
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="decisionesChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><i class="bi bi-check-circle text-success me-2"></i>Aprobadas</td>
+                                    <td><strong>{{ stats.aprobadas }}</strong></td>
+                                    <td>{{ "%.1f"|format((stats.aprobadas / stats.total_revisadas * 100) if stats.total_revisadas > 0 else 0) }}%</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-x-circle text-danger me-2"></i>Rechazadas</td>
+                                    <td><strong>{{ stats.rechazadas }}</strong></td>
+                                    <td>{{ "%.1f"|format((stats.rechazadas / stats.total_revisadas * 100) if stats.total_revisadas > 0 else 0) }}%</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-hourglass-split text-warning me-2"></i>Pendientes</td>
+                                    <td><strong>{{ stats.pendientes }}</strong></td>
+                                    <td>{{ "%.1f"|format((stats.pendientes / (stats.total_revisadas + stats.pendientes) * 100) if (stats.total_revisadas + stats.pendientes) > 0 else 0) }}%</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparación con Objetivos -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-target me-2"></i>Objetivos vs Realidad
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Facturas por Día</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Objetivo: 8 facturas/día</span>
+                            <span>Actual: {{ "%.1f"|format(stats.facturas_por_dia) }}</span>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-{{ 'success' if stats.facturas_por_dia >= 8 else 'warning' if stats.facturas_por_dia >= 6 else 'danger' }}"
+                                 style="width: {{ (stats.facturas_por_dia / 8 * 100)|min(100) }}%"></div>
+                        </div>
+
+                        <h6>Tasa de Aprobación</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Objetivo: 85%</span>
+                            <span>Actual: {{ "%.1f"|format(stats.tasa_aprobacion) }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ 'success' if stats.tasa_aprobacion >= 85 else 'warning' if stats.tasa_aprobacion >= 75 else 'danger' }}"
+                                 style="width: {{ (stats.tasa_aprobacion / 85 * 100)|min(100) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Tiempo de Respuesta</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Objetivo: < 2 horas</span>
+                            <span>Actual: {{ stats.tiempo_promedio_horas }}h</span>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-{{ 'success' if stats.tiempo_promedio_horas <= 2 else 'warning' if stats.tiempo_promedio_horas <= 4 else 'danger' }}"
+                                 style="width: {{ (100 - (stats.tiempo_promedio_horas / 8 * 100))|max(10) }}%"></div>
+                        </div>
+
+                        <h6>Calidad (Sin Rechazos Admin)</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Objetivo: 95%</span>
+                            <span>Actual: {{ "%.1f"|format(stats.calidad) }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ 'success' if stats.calidad >= 95 else 'warning' if stats.calidad >= 90 else 'danger' }}"
+                                 style="width: {{ (stats.calidad / 95 * 100)|min(100) }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Sidebar -->
+    <div class="col-lg-4">
+        <!-- Performance Score -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Puntuación de Rendimiento</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="position-relative d-inline-block">
+                    <canvas id="scoreChart" width="120" height="120"></canvas>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <h3 class="mb-0">{{ "%.0f"|format(stats.score_total) }}</h3>
+                        <small class="text-muted">de 100</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row small">
+                    <div class="col-6">
+                        <strong>Velocidad</strong><br>
+                        <span class="text-{{ 'success' if stats.score_velocidad >= 80 else 'warning' if stats.score_velocidad >= 60 else 'danger' }}">
+                            {{ "%.0f"|format(stats.score_velocidad) }}/100
+                        </span>
+                    </div>
+                    <div class="col-6">
+                        <strong>Calidad</strong><br>
+                        <span class="text-{{ 'success' if stats.score_calidad >= 80 else 'warning' if stats.score_calidad >= 60 else 'danger' }}">
+                            {{ "%.0f"|format(stats.score_calidad) }}/100
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Resumen Semanal</h6>
+            </div>
+            <div class="card-body">
+                {% for dia in stats.semana %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>{{ dia.nombre }}</span>
+                    <div>
+                        <span class="badge bg-primary me-1">{{ dia.revisadas }}</span>
+                        <span class="badge bg-{{ 'success' if dia.tasa >= 85 else 'warning' if dia.tasa >= 75 else 'danger' }}">
+                            {{ "%.0f"|format(dia.tasa) }}%
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top Insights -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Insights Destacados</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-success">🏆 Mejor día</h6>
+                    <p class="mb-1">{{ stats.mejor_dia.fecha }}</p>
+                    <small class="text-muted">{{ stats.mejor_dia.revisadas }} facturas revisadas</small>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-info">⚡ Mayor productividad</h6>
+                    <p class="mb-1">{{ stats.mejor_hora }} horas</p>
+                    <small class="text-muted">Franja horaria más productiva</small>
+                </div>
+
+                <div>
+                    <h6 class="text-warning">📈 Tendencia</h6>
+                    <p class="mb-1">
+                        {% if stats.tendencia > 0 %}
+                            <i class="bi bi-trending-up text-success"></i> Mejorando
+                        {% elif stats.tendencia < 0 %}
+                            <i class="bi bi-trending-down text-danger"></i> Declinando
+                        {% else %}
+                            <i class="bi bi-dash text-warning"></i> Estable
+                        {% endif %}
+                    </p>
+                    <small class="text-muted">{{ "%.1f"|format(abs(stats.tendencia)) }}% vs semana anterior</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rankings -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Mi Posición</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="display-6 mb-2">
+                        {% if stats.ranking <= 1 %}
+                            🥇
+                        {% elif stats.ranking <= 2 %}
+                            🥈
+                        {% elif stats.ranking <= 3 %}
+                            🥉
+                        {% else %}
+                            #{{ stats.ranking }}
+                        {% endif %}
+                    </div>
+                    <h5>Puesto {{ stats.ranking }}</h5>
+                    <small class="text-muted">de {{ stats.total_supervisores }} supervisores</small>
+                </div>
+                <hr>
+                <div class="small">
+                    <div class="d-flex justify-content-between">
+                        <span>Por velocidad:</span>
+                        <strong>#{{ stats.ranking_velocidad }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Por calidad:</span>
+                        <strong>#{{ stats.ranking_calidad }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Por volumen:</span>
+                        <strong>#{{ stats.ranking_volumen }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Rendimiento diario chart
+const rendimientoCtx = document.getElementById('rendimientoDiarioChart').getContext('2d');
+new Chart(rendimientoCtx, {
+    type: 'line',
+    data: {
+        labels: {{ stats.fechas_labels|tojson }},
+        datasets: [{
+            label: 'Facturas Revisadas',
+            data: {{ stats.revisadas_por_dia|tojson }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Facturas Aprobadas',
+            data: {{ stats.aprobadas_por_dia|tojson }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Decisiones chart
+const decisionesCtx = document.getElementById('decisionesChart').getContext('2d');
+new Chart(decisionesCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Aprobadas', 'Rechazadas', 'Pendientes'],
+        datasets: [{
+            data: [{{ stats.aprobadas }}, {{ stats.rechazadas }}, {{ stats.pendientes }}],
+            backgroundColor: ['#28a745', '#dc3545', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Score chart (gauge)
+const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+new Chart(scoreCtx, {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [{{ stats.score_total }}, {{ 100 - stats.score_total }}],
+            backgroundColor: [
+                {% if stats.score_total >= 80 %}'#28a745'{% elif stats.score_total >= 60 %}'#ffc107'{% else %}'#dc3545'{% endif %},
+                '#e9ecef'
+            ],
+            borderWidth: 0,
+            cutout: '70%'
+        }]
+    },
+    options: {
+        responsive: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Period selector
+document.getElementById('periodo').addEventListener('change', function() {
+    const fechaInicio = document.getElementById('fecha_inicio');
+    const fechaFin = document.getElementById('fecha_fin');
+
+    if (this.value === 'personalizado') {
+        fechaInicio.style.display = 'block';
+        fechaFin.style.display = 'block';
+    } else {
+        fechaInicio.style.display = 'none';
+        fechaFin.style.display = 'none';
+    }
+});
+
+function exportarEstadisticas() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = '/supervisor/exportar_estadisticas?' + params.toString();
+}
+</script>
+{% endblock %}

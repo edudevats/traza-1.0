@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Factura - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Crear Nueva Factura</h1>
+        <p class="text-muted mb-0">Crear una factura para cualquier usuario del sistema</p>
+    </div>
+    <a href="{{ url_for('admins.dashboard') }}" class="btn btn-secondary btn-custom">
+        <i class="bi bi-arrow-left me-2"></i>Volver al Dashboard
+    </a>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mb-4">
+    <div class="d-flex">
+        <i class="bi bi-info-circle me-3 fs-4"></i>
+        <div>
+            <strong>Información importante:</strong><br>
+            Como administrador, las facturas que crees serán automáticamente aprobadas y listas para el usuario.
+            Los cálculos de impuestos se realizarán automáticamente usando las tasas configuradas.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Formulario de Creación -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Datos de la Factura
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <!-- Usuario -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            {{ form.usuario_id.label(class="form-label") }}
+                            {{ form.usuario_id(class="form-select") }}
+                            {% if form.usuario_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.usuario_id.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Selecciona el usuario para quien se creará la factura</small>
+                        </div>
+                    </div>
+
+                    <!-- Información del Importador -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            {{ form.importador.label(class="form-label") }}
+                            {{ form.importador(class="form-control") }}
+                            {% if form.importador.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.importador.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Descripción del Producto -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            {{ form.descripcion_producto.label(class="form-label") }}
+                            {{ form.descripcion_producto(class="form-control") }}
+                            {% if form.descripcion_producto.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.descripcion_producto.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Cantidad y Unidad -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.cantidad.label(class="form-label") }}
+                            {{ form.cantidad(class="form-control") }}
+                            {% if form.cantidad.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.cantidad.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.unidad_medida.label(class="form-label") }}
+                            {{ form.unidad_medida(class="form-select") }}
+                            {% if form.unidad_medida.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.unidad_medida.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Valores FOB y Flete -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.valor_fob.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor_fob(class="form-control", id="valor_fob") }}
+                            </div>
+                            {% if form.valor_fob.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.valor_fob.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.flete.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.flete(class="form-control", id="flete") }}
+                            </div>
+                            {% if form.flete.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.flete.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Archivo de Factura -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            {{ form.archivo_factura.label(class="form-label") }}
+                            {{ form.archivo_factura(class="form-control") }}
+                            {% if form.archivo_factura.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.archivo_factura.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Solo archivos PDF (opcional)</small>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            {{ form.observaciones.label(class="form-label") }}
+                            {{ form.observaciones(class="form-control") }}
+                            {% if form.observaciones.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.observaciones.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admins.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Cancelar
+                        </a>
+                        {{ form.submit(class="btn btn-success") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Preview de Cálculos -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calculator me-2"></i>Vista Previa de Cálculos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Valor FOB:</strong></div>
+                    <div class="col-6 text-end">$<span id="preview_fob">0.00</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Flete:</strong></div>
+                    <div class="col-6 text-end">$<span id="preview_flete">0.00</span></div>
+                </div>
+                <hr>
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Valor CIF:</strong></div>
+                    <div class="col-6 text-end">$<span id="preview_cif">0.00</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">IEPS:</div>
+                    <div class="col-6 text-end">$<span id="preview_ieps">0.00</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">IVA:</div>
+                    <div class="col-6 text-end">$<span id="preview_iva">0.00</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">PVR:</div>
+                    <div class="col-6 text-end">$<span id="preview_pvr">0.00</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">IVA PVR:</div>
+                    <div class="col-6 text-end">$<span id="preview_iva_pvr">0.00</span></div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-6"><strong>Total a Pagar:</strong></div>
+                    <div class="col-6 text-end"><strong class="text-success">$<span id="preview_total">0.00</span></strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ayuda -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-question-circle me-2"></i>Ayuda
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><strong>Valor FOB:</strong> Valor de la mercancía sin incluir flete ni seguro</li>
+                    <li class="mb-2"><strong>Flete:</strong> Costo del transporte hasta México</li>
+                    <li class="mb-2"><strong>Valor CIF:</strong> FOB + Flete (se calcula automáticamente)</li>
+                    <li><strong>Impuestos:</strong> Se calculan automáticamente con las tasas configuradas</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tasas de impuestos (se pueden obtener del backend)
+const tasas = {
+    ieps: 7.5, // Valor por defecto - debería venir del backend
+    iva: 0.16,
+    pvr: 0.08,
+    iva_pvr: 0.16
+};
+
+function actualizarCalculos() {
+    const valorFob = parseFloat(document.getElementById('valor_fob').value) || 0;
+    const flete = parseFloat(document.getElementById('flete').value) || 0;
+
+    // Calcular CIF
+    const valorCif = valorFob + flete;
+
+    // Calcular impuestos
+    const ieps = valorCif * (tasas.ieps / 100);
+    const baseIva = valorCif + ieps;
+    const iva = baseIva * tasas.iva;
+    const pvr = valorCif * tasas.pvr;
+    const ivaPvr = pvr * tasas.iva_pvr;
+    const total = valorCif + ieps + iva + pvr + ivaPvr;
+
+    // Actualizar preview
+    document.getElementById('preview_fob').textContent = valorFob.toFixed(2);
+    document.getElementById('preview_flete').textContent = flete.toFixed(2);
+    document.getElementById('preview_cif').textContent = valorCif.toFixed(2);
+    document.getElementById('preview_ieps').textContent = ieps.toFixed(2);
+    document.getElementById('preview_iva').textContent = iva.toFixed(2);
+    document.getElementById('preview_pvr').textContent = pvr.toFixed(2);
+    document.getElementById('preview_iva_pvr').textContent = ivaPvr.toFixed(2);
+    document.getElementById('preview_total').textContent = total.toFixed(2);
+}
+
+// Event listeners
+document.getElementById('valor_fob').addEventListener('input', actualizarCalculos);
+document.getElementById('flete').addEventListener('input', actualizarCalculos);
+
+// Actualizar al cargar la página
+document.addEventListener('DOMContentLoaded', actualizarCalculos);
+</script>
+{% endblock %}
